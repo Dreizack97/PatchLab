@@ -67,6 +67,9 @@ class StartDialog(QDialog):
         self.setWindowTitle("PatchLab — Configurar sesión")
         self.setMinimumWidth(560)
         self._config: Optional[LabelerConfig] = None
+        # ``True`` si el usuario eligió unirse a una sesión remota en vez de
+        # iniciar una local (lo consulta ``main.py`` tras cerrar el diálogo).
+        self._join_requested = False
 
         self._input = _PathSelector("Carpeta con imágenes a etiquetar", pick_dir=True)
         self._output = _PathSelector("Carpeta de salida del dataset", pick_dir=True)
@@ -114,6 +117,11 @@ class StartDialog(QDialog):
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Iniciar")
+        # Acción alternativa: conectarse como colaborador a una sesión existente.
+        join_button = buttons.addButton(
+            "Unirse a sesión…", QDialogButtonBox.ButtonRole.ActionRole
+        )
+        join_button.clicked.connect(self._on_join)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         form.addRow(buttons)
@@ -146,6 +154,15 @@ class StartDialog(QDialog):
         self._config = config
         self.accept()
 
+    def _on_join(self) -> None:
+        """Marca que el usuario quiere unirse a una sesión y cierra el diálogo."""
+        self._join_requested = True
+        self.accept()
+
     def config(self) -> Optional[LabelerConfig]:
         """Devuelve la configuración construida tras aceptar el diálogo."""
         return self._config
+
+    def join_requested(self) -> bool:
+        """``True`` si el usuario eligió «Unirse a sesión» en vez de iniciar."""
+        return self._join_requested
