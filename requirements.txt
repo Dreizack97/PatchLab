@@ -1,0 +1,16 @@
+# PatchLab — Etiquetador de parches de imágenes
+# Dependencias principales (modo Cuadrícula y toda la interfaz gráfica).
+#
+# Recomendado:  pip install -e .            (usa pyproject.toml)
+# Alternativa:  pip install -r requirements.txt
+
+PySide6>=6.7        # Interfaz gráfica multiplataforma (Qt for Python).
+opencv-python>=4.9  # Lectura, recorte y dibujado de imágenes.
+numpy>=1.26         # Operaciones numéricas sobre las matrices de imagen.
+
+# --------------------------------------------------------------------------- #
+# Opcional: modo "Parches YOLO" (segmentación). Solo necesario si vas a cargar
+# un modelo .pt. Arrastra PyTorch, por lo que se instala aparte:
+#     pip install ultralytics
+# --------------------------------------------------------------------------- #
+# ultralytics>=8.1
