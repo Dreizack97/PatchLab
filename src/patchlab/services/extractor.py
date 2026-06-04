@@ -19,11 +19,19 @@ from pathlib import Path
 from typing import List, Protocol
 
 import cv2
+import os
 import numpy as np
+import torch
 
 from patchlab.models.config import LabelerConfig
 from patchlab.models.patch import Patch
 from patchlab.services.geometry import build_crop_and_mask
+
+# Forzar a OpenMP y MKL a usar un solo hilo para evitar conflictos con Qt
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+
+torch.set_num_threads(1) # Limita los hilos de PyTorch
 
 # Fracción mínima de píxeles de máscara para aceptar un parche YOLO.
 _MIN_MASK_RATIO = 0.5
@@ -130,10 +138,10 @@ class YoloPatchExtractor:
         for result in results:
             if not result.masks:
                 continue
-            boxes = result.boxes.xyxy.cpu().numpy()
+            boxes = result.boxes.xyxy.cpu().numpy().copy()
 
             for i, polygon in enumerate(result.masks.xy):
-                poly_np = np.asarray(polygon)
+                poly_np = np.asarray(polygon, copy=True)
                 if poly_np.size == 0:
                     continue
 
