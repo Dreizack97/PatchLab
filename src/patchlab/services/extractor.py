@@ -16,7 +16,7 @@ dependencias pesadas de deep learning.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Protocol
+from typing import List, Protocol, Tuple
 
 import cv2
 import os
@@ -134,6 +134,10 @@ class YoloPatchExtractor:
         size = self._patch_size
         patches: List[Patch] = []
         counter = 0
+        # Posiciones (x, y) ya ocupadas, en coordenadas globales de imagen. Evita
+        # que detecciones solapadas (varias máscaras sobre el mismo objeto)
+        # generen celdas duplicadas y superpuestas.
+        occupied: set[Tuple[int, int]] = set()
 
         for result in results:
             if not result.masks:
@@ -153,7 +157,7 @@ class YoloPatchExtractor:
                     continue
 
                 counter = self._tile_region(
-                    crop_img, crop_mask, x1, y1, size, counter, patches
+                    crop_img, crop_mask, x1, y1, size, counter, patches, occupied
                 )
         return patches
 
@@ -166,17 +170,32 @@ class YoloPatchExtractor:
         size: int,
         counter: int,
         patches: List[Patch],
+        occupied: set,
     ) -> int:
         """
         Trocea una región recortada en parches y los añade a ``patches``.
+
+        El troceo se alinea a una cuadrícula global anclada al origen de la
+        imagen (no al de cada región), de modo que regiones contiguas o solapadas
+        comparten las mismas líneas de rejilla. Las celdas cuya posición global ya
+        está ocupada se descartan para no duplicar parches.
 
         Returns:
             El contador de parches actualizado.
         """
         region_h, region_w = crop_mask.shape
 
-        for top in range(0, region_h - size + 1, size):
-            for left in range(0, region_w - size + 1, size):
+        # Desplazamiento para alinear el primer corte con la rejilla global.
+        start_top = (-origin_y) % size
+        start_left = (-origin_x) % size
+
+        for top in range(start_top, region_h - size + 1, size):
+            for left in range(start_left, region_w - size + 1, size):
+                global_x = origin_x + left
+                global_y = origin_y + top
+                if (global_x, global_y) in occupied:
+                    continue
+
                 mask_tile = crop_mask[top:top + size, left:left + size]
                 if np.count_nonzero(mask_tile) / (size * size) < _MIN_MASK_RATIO:
                     continue
@@ -190,14 +209,15 @@ class YoloPatchExtractor:
                     Patch(
                         index=counter,
                         source_type="yolo",
-                        x=origin_x + left,
-                        y=origin_y + top,
+                        x=global_x,
+                        y=global_y,
                         w=size,
                         h=size,
                         original=orig_tile.copy(),
                         masked=masked_tile,
                     )
                 )
+                occupied.add((global_x, global_y))
                 counter += 1
         return counter
 
