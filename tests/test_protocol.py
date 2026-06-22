@@ -118,6 +118,26 @@ def test_image_message_carries_geometry() -> None:
     assert parsed["index"] == 3
     assert parsed["cells"] == [[0, 0, 32, 32]]
     assert parsed["shard_total"] == 5
+    # Sin clasificador no se envía el vector de sugerencias.
+    assert "suggestions" not in parsed
+
+
+def test_image_message_carries_classifier_suggestions() -> None:
+    raw = protocol.encode(
+        protocol.build_image(
+            index=0,
+            file_name="a.jpg",
+            width=64,
+            height=64,
+            jpeg_b64="",
+            cells=[(0, 0, 32, 32), (32, 0, 32, 32)],
+            position=1,
+            shard_total=1,
+            suggestions=["OK", None],
+        )
+    )
+    parsed = protocol.parse_server_message(raw)
+    assert parsed["suggestions"] == ["OK", None]
 
 
 def test_server_message_rejects_unknown() -> None:
