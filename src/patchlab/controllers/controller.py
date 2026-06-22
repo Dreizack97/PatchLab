@@ -23,6 +23,7 @@ from patchlab.controllers.worker import ExtractionWorker
 from patchlab.models.config import LabelerConfig
 from patchlab.models.patch import SKIP, Patch
 from patchlab.models.repository import DatasetRepository
+from patchlab.services.classifier import create_classifier
 from patchlab.services.extractor import create_extractor
 from patchlab.services.renderer import render_context
 
@@ -38,6 +39,8 @@ class FrameData:
     patch_total: int           # Número de parches de la imagen actual.
     image_index: int           # Índice de la imagen (base 0).
     image_total: int           # Número total de imágenes.
+    suggested_label: Optional[str] = None  # Clase sugerida por el clasificador.
+    suggested_confidence: float = 0.0      # Confianza de la sugerencia [0, 1].
 
 
 class LabelingController(QObject):
@@ -82,7 +85,9 @@ class LabelingController(QObject):
         """Crea el worker y lo mueve a un ``QThread`` dedicado."""
         self._thread = QThread()
         self._worker = ExtractionWorker(
-            self._images, create_extractor(self._config)
+            self._images,
+            create_extractor(self._config),
+            create_classifier(self._config),
         )
         self._worker.moveToThread(self._thread)
 
@@ -230,5 +235,7 @@ class LabelingController(QObject):
                 patch_total=len(self._patches),
                 image_index=self._image_index,
                 image_total=len(self._images),
+                suggested_label=patch.suggested_label,
+                suggested_confidence=patch.suggested_confidence,
             )
         )
