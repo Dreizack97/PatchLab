@@ -260,9 +260,16 @@ def build_image(
     cells: Sequence[Sequence[int]],
     position: int,
     shard_total: int,
+    suggestions: Optional[Sequence[Optional[str]]] = None,
 ) -> Dict[str, Any]:
-    """Una imagen del shard para etiquetar: píxeles (JPEG) + geometría."""
-    return {
+    """
+    Una imagen del shard para etiquetar: píxeles (JPEG) + geometría.
+
+    ``suggestions`` (opcional) es un vector alineado con ``cells`` con la clase
+    propuesta por el clasificador del Host para cada celda (``None`` donde no la
+    hay); el colaborador la usa como etiqueta inicial revisable.
+    """
+    message: Dict[str, Any] = {
         "t": T_IMAGE,
         "index": index,
         "file_name": file_name,
@@ -273,6 +280,9 @@ def build_image(
         "position": position,
         "shard_total": shard_total,
     }
+    if suggestions is not None:
+        message["suggestions"] = list(suggestions)
+    return message
 
 
 def build_progress(

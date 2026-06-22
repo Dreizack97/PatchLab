@@ -37,6 +37,7 @@ from patchlab.models.config import LabelerConfig
 from patchlab.models.grid_session import GridSession
 from patchlab.models.patch import Patch
 from patchlab.models.repository import DatasetRepository
+from patchlab.services.classifier import create_classifier
 from patchlab.services.extractor import create_extractor
 
 #: Identificador reservado del Host como trabajador local.
@@ -104,8 +105,13 @@ class SessionCoordinator(QObject):
     def _configure_workers(self) -> None:
         """Crea los workers de extracción y guardado en un hilo dedicado."""
         self._thread = QThread()
+        # El modelo de clasificación (si lo hay) vive solo en el Host: clasifica
+        # cada parche y sus sugerencias se propagan a la grilla local y a los
+        # colaboradores remotos, que no necesitan cargar el modelo.
         self._extraction_worker = ExtractionWorker(
-            self._images, create_extractor(self._config)
+            self._images,
+            create_extractor(self._config),
+            create_classifier(self._config),
         )
         self._save_worker = GridSaveWorker(self._repository)
         self._extraction_worker.moveToThread(self._thread)
@@ -416,6 +422,11 @@ class SessionCoordinator(QObject):
         jpeg_b64 = base64.b64encode(buffer).decode("ascii") if ok else ""
         height, width = image.shape[:2]
         cells = [(patch.x, patch.y, patch.w, patch.h) for patch in patches]
+        # Sugerencias del clasificador como etiquetas iniciales del colaborador.
+        # Se omiten si no hay ninguna, para no engordar el mensaje.
+        suggestions = [patch.suggested_label for patch in patches]
+        if not any(suggestions):
+            suggestions = None
         return protocol.build_image(
             index=index,
             file_name=Path(path).name,
@@ -425,6 +436,7 @@ class SessionCoordinator(QObject):
             cells=cells,
             position=position,
             shard_total=shard_total,
+            suggestions=suggestions,
         )
 
 
@@ -530,6 +542,9 @@ class LocalWorker(QObject):
         """Carga una nueva imagen del shard del Host en el lienzo."""
         self._session = GridSession(patches)
         self._image_id = image_id
+        # Pre-pinta las celdas con las sugerencias del clasificador (si las hay);
+        # son el estado de partida, así que «deshacer» no las elimina.
+        prefilled = self._session.prefill_suggestions()
         self.gridReady.emit(
             GridFrame(
                 image=image,
@@ -540,9 +555,10 @@ class LocalWorker(QObject):
             )
         )
         self.historyChanged.emit(False, False)
-        self.statusMessage.emit(
-            f"Imagen «{file_name}» ({position}/{shard_total})."
-        )
+        base = f"Imagen «{file_name}» ({position}/{shard_total})."
+        if prefilled:
+            base += f" {prefilled} celdas pre-etiquetadas; revisa y corrige."
+        self.statusMessage.emit(base)
 
     def notify_shard_done(self) -> None:
         """El Host agotó su porción; queda a la espera de posibles reasignaciones."""

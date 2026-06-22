@@ -203,6 +203,9 @@ class RemoteGridController(QObject):
         if image is None:
             self.statusMessage.emit("No se pudo decodificar la imagen del Host.")
             return
+        # Sugerencias del clasificador del Host (si las envió), alineadas con las
+        # celdas; el Host es de confianza, así que se aceptan tal cual.
+        suggestions = msg.get("suggestions") or []
         patches = [
             Patch(
                 index=i,
@@ -212,11 +215,15 @@ class RemoteGridController(QObject):
                 w=w,
                 h=h,
                 original=_PLACEHOLDER,
+                suggested_label=suggestions[i] if i < len(suggestions) else None,
             )
             for i, (x, y, w, h) in enumerate(msg["cells"])
         ]
         self._session = GridSession(patches)
         self._image_id = msg["index"]
+        # Pre-pinta las celdas sugeridas (estado de partida, sin historial) para
+        # que el colaborador solo revise y corrija.
+        prefilled = self._session.prefill_suggestions()
         shard_total = msg.get("shard_total", self._shard_total)
         position = msg.get("position", 1)
         self.gridReady.emit(
@@ -229,9 +236,10 @@ class RemoteGridController(QObject):
             )
         )
         self.historyChanged.emit(False, False)
-        self.statusMessage.emit(
-            f"Imagen «{msg.get('file_name', '')}» ({position}/{shard_total})."
-        )
+        base = f"Imagen «{msg.get('file_name', '')}» ({position}/{shard_total})."
+        if prefilled:
+            base += f" {prefilled} celdas pre-etiquetadas; revisa y corrige."
+        self.statusMessage.emit(base)
 
     def _on_progress(self, me: dict, everyone: list) -> None:
         """Difunde el progreso para el panel y los indicadores propios."""
