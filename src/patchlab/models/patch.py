@@ -29,6 +29,9 @@ class Patch:
         masked: Recorte BGR enmascarado por YOLO; ``None`` en modo cuadrícula.
         label: Etiqueta asignada, ``SKIP`` u ``None`` si aún no se decide.
         saved_path: Ruta en disco del archivo guardado, si se guardó.
+        suggested_label: Clase propuesta por el modelo de clasificación opcional
+            (``None`` si no hay modelo o no superó el umbral de confianza).
+        suggested_confidence: Confianza [0, 1] de ``suggested_label``.
     """
 
     index: int
@@ -41,6 +44,8 @@ class Patch:
     masked: Optional[np.ndarray] = None
     label: Optional[str] = None
     saved_path: Optional[Path] = None
+    suggested_label: Optional[str] = None
+    suggested_confidence: float = 0.0
 
     @property
     def display_image(self) -> np.ndarray:
