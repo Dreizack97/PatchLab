@@ -95,6 +95,24 @@ class GridSession:
         """Parches con una etiqueta de clase real (los que deben guardarse)."""
         return [patch for patch in self._patches if patch.is_classified]
 
+    def prefill_suggestions(self) -> int:
+        """
+        Aplica las sugerencias del clasificador como etiquetas iniciales.
+
+        Solo afecta a celdas aún sin decidir y que tengan ``suggested_label``.
+        No genera historial: las sugerencias son el *estado de partida*, no una
+        acción del usuario, de modo que «deshacer» no las elimina.
+
+        Returns:
+            Número de celdas pre-etiquetadas a partir de una sugerencia.
+        """
+        prefilled = 0
+        for patch in self._patches:
+            if patch.label is None and patch.suggested_label is not None:
+                patch.label = patch.suggested_label
+                prefilled += 1
+        return prefilled
+
     # ------------------------------------------------------------------ #
     # Acciones de edición
     # ------------------------------------------------------------------ #

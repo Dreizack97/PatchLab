@@ -21,6 +21,7 @@ from patchlab.controllers.worker import ExtractionWorker
 from patchlab.models.config import LabelerConfig
 from patchlab.models.grid_session import GridSession
 from patchlab.models.repository import DatasetRepository
+from patchlab.services.classifier import create_classifier
 from patchlab.services.extractor import create_extractor
 
 
@@ -85,7 +86,9 @@ class GridController(QObject):
         """Crea los workers de extracción y guardado en un hilo dedicado."""
         self._thread = QThread()
         self._extraction_worker = ExtractionWorker(
-            self._images, create_extractor(self._config)
+            self._images,
+            create_extractor(self._config),
+            create_classifier(self._config),
         )
         self._save_worker = GridSaveWorker(self._repository)
         self._extraction_worker.moveToThread(self._thread)
@@ -201,6 +204,10 @@ class GridController(QObject):
         self._image = image
         self._image_path = Path(path)
         self._session = GridSession(patches)
+        # Pre-pinta las celdas con las sugerencias del clasificador (si las hay)
+        # para que el usuario solo revise y corrija en lugar de etiquetar desde
+        # cero. Forman el estado inicial, así que «deshacer» no las borra.
+        prefilled = self._session.prefill_suggestions()
         self.gridReady.emit(
             GridFrame(
                 image=image,
@@ -211,7 +218,12 @@ class GridController(QObject):
             )
         )
         self.historyChanged.emit(False, False)
-        self._emit_status_counts()
+        if prefilled:
+            self.statusMessage.emit(
+                f"{prefilled} celdas pre-etiquetadas por el modelo. Revisa y corrige."
+            )
+        else:
+            self._emit_status_counts()
 
     def _on_image_skipped(self, index: int, path: str) -> None:
         """Salta imágenes ilegibles o sin parches."""

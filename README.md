@@ -41,7 +41,7 @@ salida directamente consumible por cualquier *pipeline* de entrenamiento.
 | Área | Detalle |
 |------|---------|
 | **Extracción** | **Cuadrícula** (parches cuadrados regulares sobre toda la imagen) o **Parches YOLO** (recortes restringidos a las regiones segmentadas por un modelo, con su máscara aplicada — *opcional*). |
-| **Interacción** | **Secuencial** (un parche cada vez) o **Cuadrícula interactiva** (se ve toda la rejilla y se "pinta" haciendo clic). |
+| **Interacción** | **Cuadrícula interactiva**: se ve toda la rejilla y se "pinta" haciendo clic. |
 | **Pintado por clic** | Clase fija ("sticky"): un clic aplica la clase activa con *feedback* visual instantáneo. Clic derecho o arrastre para limpiar/pintar. |
 | **Llenado automático** | Etiqueta todas las celdas restantes con una sola acción, sin congelar la interfaz. |
 | **Deshacer / Rehacer** | Historial completo en el flujo por clic (patrón *Command*). |
@@ -108,22 +108,8 @@ Al iniciar se muestra un **diálogo de configuración**:
 | Etiquetas | Lista separada por comas (p. ej. `OK, NG, REPARABLE`). |
 | Tamaño de parche | Lado en píxeles de cada recorte cuadrado. |
 | Padding YOLO | Contexto extra alrededor del recorte (`0.1` = 10 %). |
-| Modo de etiquetado | **Secuencial** o **Cuadrícula interactiva**. |
 
 ## ⌨️ Atajos de teclado
-
-<table>
-<tr><th>Modo secuencial</th><th>Modo cuadrícula interactiva</th></tr>
-<tr valign="top"><td>
-
-| Tecla | Acción |
-|-------|--------|
-| `1` `2` `3` … | Asignar la etiqueta (en orden) |
-| `S` | Omitir el parche |
-| `U` / `Retroceso` | Deshacer |
-| `Q` / `Esc` | Finalizar |
-
-</td><td>
 
 | Atajo | Acción |
 |-------|--------|
@@ -134,9 +120,6 @@ Al iniciar se muestra un **diálogo de configuración**:
 | `Ctrl+Z` / `Ctrl+Y` | Deshacer / Rehacer |
 | `Enter` | Guardar y siguiente imagen |
 | `Esc` / `Q` | Finalizar |
-
-</td></tr>
-</table>
 
 Todos los botones de la interfaz muestran su atajo y son clicables.
 
