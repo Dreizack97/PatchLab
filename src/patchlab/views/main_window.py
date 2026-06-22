@@ -7,7 +7,7 @@ del usuario (teclado o botones) al controlador.
 
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QCloseEvent, QKeyEvent
@@ -127,12 +127,14 @@ class MainWindow(QMainWindow):
         layout = QHBoxLayout(container)
 
         # Un botón por etiqueta, con su atajo visible.
+        self._label_buttons: Dict[str, QPushButton] = {}
         for char, label in self._keymap.items():
             button = QPushButton(f"[{char.upper()}]  {label}")
             button.setToolTip(f"Asignar «{label}» (tecla {char.upper()})")
             button.clicked.connect(
                 lambda _checked=False, lbl=label: self._controller.apply_label(lbl)
             )
+            self._label_buttons[label] = button
             layout.addWidget(button)
 
         layout.addStretch(1)
@@ -173,6 +175,31 @@ class MainWindow(QMainWindow):
         self._image_progress.setValue(frame.image_index + 1)
         self._patch_progress.setMaximum(frame.patch_total)
         self._patch_progress.setValue(frame.patch_index + 1)
+
+        self._highlight_suggestion(
+            frame.suggested_label, frame.suggested_confidence
+        )
+
+    def _highlight_suggestion(
+        self, label: Optional[str], confidence: float
+    ) -> None:
+        """Resalta el botón de la clase sugerida por el modelo (si la hay)."""
+        for lbl, button in self._label_buttons.items():
+            if lbl == label:
+                button.setStyleSheet("font-weight: 700; border: 2px solid #3a9;")
+                button.setText(
+                    f"[{self._char_for(lbl)}]  {lbl}  ★ {confidence:.0%}"
+                )
+            else:
+                button.setStyleSheet("")
+                button.setText(f"[{self._char_for(lbl)}]  {lbl}")
+
+    def _char_for(self, label: str) -> str:
+        """Devuelve, en mayúscula, el atajo de teclado de una etiqueta."""
+        for char, lbl in self._keymap.items():
+            if lbl == label:
+                return char.upper()
+        return "?"
 
     def _on_finished(self, summary: str) -> None:
         """Muestra el resumen final y cierra la ventana."""

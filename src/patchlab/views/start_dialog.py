@@ -74,6 +74,18 @@ class StartDialog(QDialog):
         self._input = _PathSelector("Carpeta con imágenes a etiquetar", pick_dir=True)
         self._output = _PathSelector("Carpeta de salida del dataset", pick_dir=True)
         self._model = _PathSelector("Opcional: modelo YOLO (.pt)", pick_dir=False)
+        self._classifier = _PathSelector(
+            "Opcional: modelo de clasificación (.pt)", pick_dir=False
+        )
+
+        self._classifier_conf = QDoubleSpinBox()
+        self._classifier_conf.setRange(0.0, 1.0)
+        self._classifier_conf.setSingleStep(0.05)
+        self._classifier_conf.setValue(0.0)
+        self._classifier_conf.setToolTip(
+            "Confianza mínima para aceptar una sugerencia del clasificador "
+            "(0 = aceptar todas)."
+        )
 
         self._labels = QLineEdit("OK, NG")
         self._labels.setPlaceholderText("Etiquetas separadas por comas")
@@ -101,13 +113,17 @@ class StartDialog(QDialog):
         form.addRow("Directorio de entrada:", self._input)
         form.addRow("Directorio de salida:", self._output)
         form.addRow("Modelo YOLO:", self._model)
+        form.addRow("Modelo de clasificación:", self._classifier)
+        form.addRow("Confianza mínima:", self._classifier_conf)
         form.addRow("Etiquetas:", self._labels)
         form.addRow("Tamaño de parche:", self._patch_size)
         form.addRow("Padding YOLO:", self._padding)
         form.addRow("Modo de etiquetado:", self._mode)
 
         hint = QLabel(
-            "Sin modelo YOLO se usa el modo Cuadrícula sobre toda la imagen."
+            "Sin modelo YOLO se usa el modo Cuadrícula sobre toda la imagen. "
+            "El modelo de clasificación es opcional y pre-sugiere la clase de "
+            "cada parche para acelerar el etiquetado."
         )
         hint.setWordWrap(True)
         hint.setStyleSheet("color: gray;")
@@ -136,11 +152,14 @@ class StartDialog(QDialog):
             if token.strip()
         ]
         model_text = self._model.text()
+        classifier_text = self._classifier.text()
         config = LabelerConfig(
             input_dir=Path(self._input.text()),
             output_dir=Path(self._output.text()),
             labels=labels,
             model_path=Path(model_text) if model_text else None,
+            classifier_path=Path(classifier_text) if classifier_text else None,
+            classifier_min_confidence=self._classifier_conf.value(),
             patch_size=self._patch_size.value(),
             padding_pct=self._padding.value(),
             mode=self._mode.currentData(),
