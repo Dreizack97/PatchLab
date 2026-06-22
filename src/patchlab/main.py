@@ -19,12 +19,10 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from patchlab.collab.client import CollabClient
 from patchlab.collab.coordinator import SessionCoordinator
 from patchlab.collab.remote_controller import RemoteGridController
-from patchlab.controllers.controller import LabelingController
-from patchlab.models.config import LabelerConfig, LabelingMode
+from patchlab.models.config import LabelerConfig
 from patchlab.services.image_loader import find_images
 from patchlab.views.grid_window import GridWindow
 from patchlab.views.join_dialog import JoinDialog
-from patchlab.views.main_window import MainWindow
 from patchlab.views.start_dialog import StartDialog
 from patchlab.views.theme import apply_theme
 
@@ -61,19 +59,12 @@ def run() -> int:
         )
         return 1
 
-    # Selecciona la pareja Controlador/Vista según el modo de interacción.
-    if config.mode == LabelingMode.GRID_CLICK:
-        # El modo cuadrícula es siempre colaborativo distribuido: el Host actúa
-        # como supervisor + trabajador. La sesión arranca en el lobby y no se
-        # etiqueta hasta pulsar «Comenzar Etiquetado».
-        coordinator = SessionCoordinator(config, images)
-        window = GridWindow(coordinator.local, config, coordinator=coordinator)
-        window.show()
-    else:
-        controller = LabelingController(config, images)
-        window = MainWindow(controller, config)
-        window.show()
-        controller.start()
+    # La cuadrícula es siempre colaborativa distribuida: el Host actúa como
+    # supervisor + trabajador. La sesión arranca en el lobby y no se etiqueta
+    # hasta pulsar «Comenzar Etiquetado».
+    coordinator = SessionCoordinator(config, images)
+    window = GridWindow(coordinator.local, config, coordinator=coordinator)
+    window.show()
 
     return app.exec()
 
@@ -106,7 +97,6 @@ def _run_as_collaborator(app: QApplication) -> int:
             input_dir=Path("."),
             output_dir=Path("."),
             labels=list(labels),
-            mode=LabelingMode.GRID_CLICK,
         )
         window = GridWindow(remote, config, is_collaborator=True)
         state["window"] = window

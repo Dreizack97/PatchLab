@@ -8,7 +8,6 @@ from patchlab.services.extractor import (
     create_extractor,
 )
 from patchlab.services.image_loader import VALID_EXTENSIONS, find_images
-from patchlab.services.renderer import render_context
 from patchlab.services.shortcuts import KEY_CHARS, build_keymap, shortcut_for
 
 __all__ = [
@@ -20,7 +19,6 @@ __all__ = [
     "create_extractor",
     "VALID_EXTENSIONS",
     "find_images",
-    "render_context",
     "KEY_CHARS",
     "build_keymap",
     "shortcut_for",

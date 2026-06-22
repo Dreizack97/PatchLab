@@ -3,18 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
 from typing import List, Optional
-
-
-class LabelingMode(str, Enum):
-    """Modo de interacción de la sesión de etiquetado."""
-
-    #: Flujo clásico: un parche cada vez, se confirma con teclado o botones.
-    SEQUENTIAL = "sequential"
-    #: Flujo por clic: toda la cuadrícula visible, se "pinta" la clase activa.
-    GRID_CLICK = "grid_click"
 
 
 @dataclass
@@ -33,7 +23,6 @@ class LabelerConfig:
             sugerencia del clasificador; por debajo, el parche queda sin sugerir.
         patch_size: Lado en píxeles de los parches cuadrados.
         padding_pct: Expansión fraccional del recorte YOLO (0.1 = 10 %).
-        mode: Modo de interacción (secuencial o por clic en la cuadrícula).
     """
 
     input_dir: Path
@@ -44,7 +33,6 @@ class LabelerConfig:
     classifier_min_confidence: float = 0.0
     patch_size: int = 64
     padding_pct: float = 0.0
-    mode: LabelingMode = LabelingMode.SEQUENTIAL
 
     @property
     def use_yolo(self) -> bool:

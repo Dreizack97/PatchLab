@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtWidgets import (
-    QComboBox,
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
@@ -21,7 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from patchlab.models.config import LabelerConfig, LabelingMode
+from patchlab.models.config import LabelerConfig
 
 
 class _PathSelector(QWidget):
@@ -101,10 +100,6 @@ class StartDialog(QDialog):
         self._padding.setValue(0.0)
         self._padding.setToolTip("Contexto extra del recorte YOLO (0.1 = 10 %)")
 
-        self._mode = QComboBox()
-        self._mode.addItem("Secuencial (un parche cada vez)", LabelingMode.SEQUENTIAL)
-        self._mode.addItem("Cuadrícula interactiva (clic)", LabelingMode.GRID_CLICK)
-
         self._build_layout()
 
     def _build_layout(self) -> None:
@@ -118,7 +113,6 @@ class StartDialog(QDialog):
         form.addRow("Etiquetas:", self._labels)
         form.addRow("Tamaño de parche:", self._patch_size)
         form.addRow("Padding YOLO:", self._padding)
-        form.addRow("Modo de etiquetado:", self._mode)
 
         hint = QLabel(
             "Sin modelo YOLO se usa el modo Cuadrícula sobre toda la imagen. "
@@ -162,7 +156,6 @@ class StartDialog(QDialog):
             classifier_min_confidence=self._classifier_conf.value(),
             patch_size=self._patch_size.value(),
             padding_pct=self._padding.value(),
-            mode=self._mode.currentData(),
         )
         try:
             config.validate()
