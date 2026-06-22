@@ -8,11 +8,12 @@ controlador exclusivamente mediante señales Qt, que son seguras entre hilos.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import cv2
 from PySide6.QtCore import QObject, Signal, Slot
 
+from patchlab.services.classifier import PatchClassifier
 from patchlab.services.extractor import PatchExtractor
 
 
@@ -27,16 +28,22 @@ class ExtractionWorker(QObject):
     extractionFailed = Signal(int, str, str)
 
     def __init__(
-        self, images: List[Path], extractor: PatchExtractor
+        self,
+        images: List[Path],
+        extractor: PatchExtractor,
+        classifier: Optional[PatchClassifier] = None,
     ) -> None:
         """
         Args:
             images: Lista completa de rutas de imágenes de la sesión.
             extractor: Estrategia de extracción a aplicar.
+            classifier: Clasificador opcional que pre-sugiere la clase de cada
+                parche; si es ``None`` no se generan sugerencias.
         """
         super().__init__()
         self._images = images
         self._extractor = extractor
+        self._classifier = classifier
 
     @Slot(int)
     def extract(self, index: int) -> None:
@@ -61,5 +68,13 @@ class ExtractionWorker(QObject):
         if not patches:
             self.imageSkipped.emit(index, str(path))
             return
+
+        # Las sugerencias del clasificador son una ayuda opcional: si la
+        # inferencia falla, se continúa sin ellas en lugar de descartar la imagen.
+        if self._classifier is not None:
+            try:
+                self._classifier.annotate(patches)
+            except Exception:  # noqa: BLE001 — la sugerencia es best-effort.
+                pass
 
         self.patchesReady.emit(index, str(path), image, patches)
